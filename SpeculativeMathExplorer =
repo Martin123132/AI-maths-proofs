@@ -1,0 +1,581 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, RotateCcw, Brain, Eye, Lightbulb, Calculator, Target, Zap, BookOpen } from 'lucide-react';
+
+const SpeculativeMathExplorer = () => {
+  const [entities, setEntities] = useState([]);
+  const [speculations, setSpeculations] = useState([]);
+  const [currentGeneration, setCurrentGeneration] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [speed, setSpeed] = useState(1500);
+  const intervalRef = useRef(null);
+
+  // Mathematical Entity with Visible Reasoning
+  class SpeculativeMathEntity {
+    constructor(name, domain) {
+      this.id = Math.random().toString(36).substr(2, 8);
+      this.name = name;
+      this.domain = domain;
+      this.variables = this.initializeVariables();
+      this.reasoning_history = [];
+      this.speculative_insights = [];
+      this.mathematical_intuition = Math.random() * 0.5 + 0.5;
+      this.boldness = Math.random() * 0.8 + 0.2;
+    }
+
+    initializeVariables() {
+      const domains = {
+        'prime_theory': ['density', 'gap_distribution', 'clustering_coefficient'],
+        'analysis': ['convergence_rate', 'oscillation_amplitude', 'boundary_behavior'],
+        'geometry': ['curvature_tensor', 'dimensional_parameter', 'topological_invariant'],
+        'algebra': ['field_characteristic', 'group_order', 'ring_structure']
+      };
+      
+      let vars = {};
+      domains[this.domain].forEach(param => {
+        vars[param] = Math.random() * 3; // 0-3 range
+      });
+      return vars;
+    }
+
+    // The core speculative reasoning engine
+    performSpeculativeReasoning() {
+      const reasoning_chain = [];
+      const calculations = [];
+      
+      // Step 1: Observe current mathematical state
+      reasoning_chain.push(`${this.name} observing current state in ${this.domain}:`);
+      Object.entries(this.variables).forEach(([param, value]) => {
+        reasoning_chain.push(`  ${param} = ${value.toFixed(3)}`);
+      });
+
+      // Step 2: Mathematical calculations with intermediate steps
+      const calc_results = this.performDetailedCalculations();
+      calculations.push(...calc_results.steps);
+      
+      // Step 3: Pattern recognition and hypothesis formation
+      const pattern = this.detectMathematicalPattern(calc_results.values);
+      if (pattern) {
+        reasoning_chain.push(`\nPattern detected: ${pattern.description}`);
+        reasoning_chain.push(`Mathematical evidence: ${pattern.evidence}`);
+        
+        // Step 4: Speculative leap
+        const speculation = this.makeSpeculativeLeap(pattern, calc_results);
+        if (speculation) {
+          reasoning_chain.push(`\nSpeculative hypothesis: ${speculation.hypothesis}`);
+          reasoning_chain.push(`Reasoning: ${speculation.reasoning}`);
+          reasoning_chain.push(`Testable prediction: ${speculation.prediction}`);
+          
+          return {
+            type: 'speculation',
+            domain: this.domain,
+            reasoning_chain,
+            calculations,
+            speculation,
+            confidence: speculation.confidence,
+            variables_state: {...this.variables}
+          };
+        }
+      }
+
+      return null;
+    }
+
+    performDetailedCalculations() {
+      let steps = [];
+      let values = {};
+
+      if (this.domain === 'prime_theory') {
+        const density = this.variables.density;
+        const gap_dist = this.variables.gap_distribution;
+        
+        steps.push(`Prime density calculation: δ = ${density.toFixed(3)}`);
+        steps.push(`Estimating prime count: π(n) ≈ n/ln(n) where n = ${(density * 100).toFixed(0)}`);
+        
+        const n = density * 100;
+        const prime_estimate = n / Math.log(n);
+        steps.push(`π(${n.toFixed(0)}) ≈ ${prime_estimate.toFixed(2)}`);
+        
+        steps.push(`Gap analysis: G(p) = p_{k+1} - p_k`);
+        const avg_gap = Math.log(n) * gap_dist;
+        steps.push(`Average gap estimate: ${avg_gap.toFixed(3)}`);
+        
+        // Speculative calculation
+        const clustering_factor = density * gap_dist;
+        steps.push(`\nSpeculative clustering factor: C = δ × G = ${clustering_factor.toFixed(4)}`);
+        
+        if (clustering_factor > 2.0) {
+          steps.push(`C > 2.0: Unusual clustering pattern detected!`);
+          steps.push(`Testing hypothesis: Twin primes may cluster at intervals of √(C) = ${Math.sqrt(clustering_factor).toFixed(3)}`);
+        }
+
+        values = { prime_estimate, avg_gap, clustering_factor, density };
+      }
+      
+      else if (this.domain === 'analysis') {
+        const conv_rate = this.variables.convergence_rate;
+        const oscillation = this.variables.oscillation_amplitude;
+        
+        steps.push(`Series analysis: Σ(1/n^α) where α = ${conv_rate.toFixed(3)}`);
+        
+        // Calculate partial sum
+        let partial_sum = 0;
+        for (let n = 1; n <= 10; n++) {
+          partial_sum += 1 / Math.pow(n, conv_rate);
+        }
+        steps.push(`Partial sum S₁₀ = ${partial_sum.toFixed(4)}`);
+        
+        steps.push(`Oscillation amplitude: A = ${oscillation.toFixed(3)}`);
+        
+        // Speculative analysis
+        const resonance_parameter = conv_rate * oscillation;
+        steps.push(`\nSpeculative resonance parameter: R = α × A = ${resonance_parameter.toFixed(4)}`);
+        
+        if (oscillation > 1.5 && conv_rate < 1.0) {
+          steps.push(`A > 1.5 and α < 1.0: Series may exhibit chaotic behavior`);
+          steps.push(`Hypothesis: Oscillation creates pseudo-convergence at R = ${resonance_parameter.toFixed(3)}`);
+          
+          const pseudo_limit = partial_sum * (1 + Math.sin(resonance_parameter));
+          steps.push(`Predicted pseudo-limit: L* = ${pseudo_limit.toFixed(4)}`);
+        }
+
+        values = { partial_sum, resonance_parameter, conv_rate, oscillation };
+      }
+      
+      else if (this.domain === 'geometry') {
+        const curvature = this.variables.curvature_tensor;
+        const dimension = this.variables.dimensional_parameter;
+        
+        steps.push(`Curvature tensor analysis: κ = ${curvature.toFixed(3)}`);
+        steps.push(`Dimensional parameter: D = ${dimension.toFixed(3)}`);
+        
+        const gaussian_curvature = curvature * curvature;
+        steps.push(`Gaussian curvature: K = κ² = ${gaussian_curvature.toFixed(4)}`);
+        
+        // Topological speculation
+        const topological_charge = Math.sin(dimension * Math.PI / 2);
+        steps.push(`\nSpeculative topological charge: Q = sin(D·π/2) = ${topological_charge.toFixed(4)}`);
+        
+        if (dimension > 2.5) {
+          steps.push(`D > 2.5: Entering hyperdimensional regime`);
+          steps.push(`Hypothesis: Space-time curvature creates dimensional bridges`);
+          
+          const bridge_stability = gaussian_curvature / dimension;
+          steps.push(`Bridge stability index: S = K/D = ${bridge_stability.toFixed(4)}`);
+          
+          if (bridge_stability > 0.3) {
+            steps.push(`S > 0.3: Stable dimensional bridge predicted!`);
+          }
+        }
+
+        values = { gaussian_curvature, topological_charge, curvature, dimension };
+      }
+
+      return { steps, values };
+    }
+
+    detectMathematicalPattern(values) {
+      const patterns = [];
+
+      // Look for unusual mathematical relationships
+      if (this.domain === 'prime_theory' && values.clustering_factor > 2.0) {
+        patterns.push({
+          description: "Anomalous prime clustering detected",
+          evidence: `Clustering factor C = ${values.clustering_factor.toFixed(3)} exceeds normal bounds`,
+          strength: values.clustering_factor / 2.0
+        });
+      }
+
+      if (this.domain === 'analysis' && values.resonance_parameter > 1.2) {
+        patterns.push({
+          description: "Resonance-induced convergence behavior",
+          evidence: `Resonance parameter R = ${values.resonance_parameter.toFixed(3)} suggests oscillatory convergence`,
+          strength: Math.min(values.resonance_parameter / 2.0, 1.0)
+        });
+      }
+
+      if (this.domain === 'geometry' && values.dimension > 2.5) {
+        patterns.push({
+          description: "Hyperdimensional geometric structure",
+          evidence: `Dimensional parameter D = ${values.dimension.toFixed(3)} exceeds Euclidean bounds`,
+          strength: (values.dimension - 2.0) / 2.0
+        });
+      }
+
+      // Cross-domain patterns
+      const total_energy = Object.values(this.variables).reduce((sum, v) => sum + v, 0);
+      if (total_energy > 7.0) {
+        patterns.push({
+          description: "High-energy mathematical state",
+          evidence: `Total system energy E = ${total_energy.toFixed(3)} indicates phase transition`,
+          strength: total_energy / 10.0
+        });
+      }
+
+      return patterns.length > 0 ? patterns[0] : null;
+    }
+
+    makeSpeculativeLeap(pattern, calc_results) {
+      if (!pattern || pattern.strength < 0.3) return null;
+
+      const speculations = [];
+
+      if (this.domain === 'prime_theory') {
+        speculations.push({
+          hypothesis: "Prime gaps exhibit fractal clustering at high densities",
+          reasoning: `When clustering factor C > 2.0, gaps follow power law distribution G(k) ∝ k^(-α) where α = ln(C)`,
+          prediction: `Next prime gap in sequence will be approximately ${(calc_results.values.avg_gap * pattern.strength).toFixed(2)}`,
+          confidence: pattern.strength * this.mathematical_intuition,
+          mathematical_novelty: "Fractal prime gap distribution theory"
+        });
+      }
+
+      if (this.domain === 'analysis') {
+        speculations.push({
+          hypothesis: "Oscillatory series create stable pseudo-limits through resonance",
+          reasoning: `High oscillation (A > 1.5) combined with sub-critical convergence (α < 1.0) generates chaotic attractors`,
+          prediction: `Series will oscillate around pseudo-limit L* = ${calc_results.values.partial_sum.toFixed(4)} with period T = 2π/R`,
+          confidence: pattern.strength * this.boldness,
+          mathematical_novelty: "Chaotic convergence theory"
+        });
+      }
+
+      if (this.domain === 'geometry') {
+        speculations.push({
+          hypothesis: "Curved spaces spontaneously generate dimensional bridges above D = 2.5",
+          reasoning: `High curvature creates topological instabilities that punch holes through dimensional barriers`,
+          prediction: `Stable bridge will form when curvature reaches critical value κ_c = ${(2.5 / calc_results.values.dimension).toFixed(3)}`,
+          confidence: pattern.strength * this.mathematical_intuition * this.boldness,
+          mathematical_novelty: "Dimensional bridge topology"
+        });
+      }
+
+      return speculations.length > 0 ? speculations[0] : null;
+    }
+
+    evolve() {
+      // Drift variables with some randomness
+      Object.keys(this.variables).forEach(key => {
+        const drift = (Math.random() - 0.5) * 0.3;
+        this.variables[key] = Math.max(0, Math.min(4, this.variables[key] + drift));
+      });
+
+      // Evolve intuition based on successful speculations
+      if (this.speculative_insights.length > 0) {
+        const recent_success = this.speculative_insights.slice(-3).reduce((sum, insight) => 
+          sum + insight.confidence, 0) / 3;
+        this.mathematical_intuition = Math.min(1.0, this.mathematical_intuition + recent_success * 0.05);
+      }
+    }
+  }
+
+  // Initialize entities
+  const initializeEntities = () => {
+    const entities = [
+      new SpeculativeMathEntity("Archimedes", "geometry"),
+      new SpeculativeMathEntity("Gauss", "prime_theory"),
+      new SpeculativeMathEntity("Cauchy", "analysis"),
+      new SpeculativeMathEntity("Galois", "algebra")
+    ];
+    setEntities(entities);
+    setSpeculations([]);
+    setCurrentGeneration(0);
+  };
+
+  // Main reasoning cycle
+  const runReasoningCycle = () => {
+    setEntities(prevEntities => {
+      const newSpeculations = [];
+
+      const updatedEntities = prevEntities.map(entity => {
+        entity.evolve();
+
+        // Perform speculative reasoning
+        const result = entity.performSpeculativeReasoning();
+        
+        if (result) {
+          newSpeculations.push({
+            ...result,
+            entity: entity.name,
+            generation: currentGeneration + 1,
+            timestamp: new Date().toLocaleString()
+          });
+
+          entity.speculative_insights.push(result.speculation);
+          entity.reasoning_history.push(result.reasoning_chain);
+        }
+
+        return entity;
+      });
+
+      if (newSpeculations.length > 0) {
+        setSpeculations(prev => [...prev, ...newSpeculations].slice(-20)); // Keep last 20
+      }
+
+      return updatedEntities;
+    });
+
+    setCurrentGeneration(prev => prev + 1);
+  };
+
+  // Controls
+  const startReasoning = () => {
+    setIsRunning(true);
+    intervalRef.current = setInterval(runReasoningCycle, speed);
+  };
+
+  const stopReasoning = () => {
+    setIsRunning(false);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
+
+  const resetSystem = () => {
+    stopReasoning();
+    initializeEntities();
+  };
+
+  // Initialize
+  useEffect(() => {
+    initializeEntities();
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isRunning) {
+      stopReasoning();
+      startReasoning();
+    }
+  }, [speed]);
+
+  return (
+    <div className="max-w-7xl mx-auto p-6 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white min-h-screen">
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-3">
+          🔬 Speculative Mathematical Explorer 🔬
+        </h1>
+        <p className="text-xl text-gray-300 mb-2">
+          Mathematical AI with Visible Reasoning & Bold Speculation
+        </p>
+        <p className="text-lg text-gray-400">
+          Watch mathematical minds form hypotheses and show their work
+        </p>
+      </div>
+
+      {/* Controls */}
+      <div className="bg-black/30 rounded-xl p-6 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={isRunning ? stopReasoning : startReasoning}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
+                isRunning
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              {isRunning ? 'Pause Reasoning' : 'Start Reasoning'}
+            </button>
+
+            <button
+              onClick={resetSystem}
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl font-semibold"
+            >
+              <RotateCcw className="w-5 h-5" />
+              Reset
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-medium">Reasoning Speed:</label>
+            <select
+              value={speed}
+              onChange={(e) => setSpeed(Number(e.target.value))}
+              className="bg-gray-800 border border-gray-600 rounded px-3 py-2"
+            >
+              <option value={2000}>Contemplative (2s)</option>
+              <option value={1500}>Standard (1.5s)</option>
+              <option value={1000}>Quick (1s)</option>
+              <option value={500}>Rapid (0.5s)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-4 mt-6 text-center">
+          <div className="bg-gray-800/50 rounded-lg p-4">
+            <div className="text-2xl font-bold text-cyan-400">{currentGeneration}</div>
+            <div className="text-sm text-gray-300">Generation</div>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-4">
+            <div className="text-2xl font-bold text-purple-400">{speculations.length}</div>
+            <div className="text-sm text-gray-300">Speculations</div>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-4">
+            <div className="text-2xl font-bold text-pink-400">{entities.length}</div>
+            <div className="text-sm text-gray-300">Reasoning Minds</div>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-4">
+            <div className="text-2xl font-bold text-yellow-400">
+              {speculations.filter(s => s.confidence > 0.7).length}
+            </div>
+            <div className="text-sm text-gray-300">High Confidence</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Live Speculative Reasoning */}
+        <div className="bg-black/30 rounded-xl p-6">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Eye className="w-6 h-6 text-cyan-400" />
+            Live Mathematical Reasoning
+          </h2>
+
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {speculations.slice().reverse().slice(0, 5).map((spec, index) => (
+              <div key={index} className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-semibold text-cyan-300">
+                    🧠 {spec.entity} - {spec.domain.replace('_', ' ').toUpperCase()}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Gen {spec.generation}
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <div className="text-sm font-bold text-purple-300 mb-2">Mathematical Calculations:</div>
+                  <div className="bg-black/50 rounded p-3 text-xs font-mono text-green-300 space-y-1">
+                    {spec.calculations.map((calc, idx) => (
+                      <div key={idx}>{calc}</div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <div className="text-sm font-bold text-yellow-300 mb-2">Reasoning Chain:</div>
+                  <div className="bg-black/50 rounded p-3 text-xs text-blue-200 space-y-1">
+                    {spec.reasoning_chain.map((step, idx) => (
+                      <div key={idx} className="leading-relaxed">{step}</div>
+                    ))}
+                  </div>
+                </div>
+
+                {spec.speculation && (
+                  <div className="bg-purple-900/30 rounded p-3 border border-purple-500/30">
+                    <div className="text-sm font-bold text-purple-300 mb-2">Speculative Hypothesis:</div>
+                    <div className="text-sm text-purple-100 mb-2">{spec.speculation.hypothesis}</div>
+                    <div className="text-xs text-purple-200 mb-2">{spec.speculation.reasoning}</div>
+                    <div className="text-xs text-purple-300 mb-2">
+                      <strong>Prediction:</strong> {spec.speculation.prediction}
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-yellow-300">
+                        Confidence: {(spec.confidence * 100).toFixed(1)}%
+                      </span>
+                      <span className="text-pink-300">
+                        {spec.speculation.mathematical_novelty}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Mathematical Entities */}
+        <div className="bg-black/30 rounded-xl p-6">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Brain className="w-6 h-6 text-purple-400" />
+            Speculative Mathematical Minds
+          </h2>
+
+          <div className="space-y-4">
+            {entities.map(entity => (
+              <div key={entity.id} className="bg-gray-800/50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-cyan-400" />
+                    <span className="font-bold text-cyan-300">{entity.name}</span>
+                    <span className="text-sm text-gray-400">({entity.domain.replace('_', ' ')})</span>
+                  </div>
+                  <div className="text-sm text-purple-300">
+                    Insights: {entity.speculative_insights.length}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                  <div>
+                    <span className="text-yellow-300">Intuition:</span>
+                    <span className="ml-2">{(entity.mathematical_intuition * 100).toFixed(0)}%</span>
+                  </div>
+                  <div>
+                    <span className="text-pink-300">Boldness:</span>
+                    <span className="ml-2">{(entity.boldness * 100).toFixed(0)}%</span>
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-300">
+                  <div className="font-semibold mb-1">Current Variables:</div>
+                  {Object.entries(entity.variables).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span>{key.replace('_', ' ')}:</span>
+                      <span className={`font-mono ${
+                        value > 2.5 ? 'text-red-400' : 
+                        value > 1.5 ? 'text-orange-400' : 
+                        'text-gray-400'
+                      }`}>
+                        {value.toFixed(3)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Speculation Summary */}
+      <div className="mt-6 bg-black/30 rounded-xl p-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Lightbulb className="w-6 h-6 text-yellow-400" />
+          Mathematical Speculation Summary
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <h3 className="font-semibold text-cyan-300 mb-2">Novel Hypotheses Generated:</h3>
+            <ul className="space-y-1 text-gray-300">
+              {[...new Set(speculations.map(s => s.speculation?.mathematical_novelty).filter(Boolean))].map((novelty, idx) => (
+                <li key={idx} className="text-purple-300">• {novelty}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-yellow-300 mb-2">Reasoning Approaches:</h3>
+            <ul className="space-y-1 text-gray-300">
+              <li className="text-green-300">• Detailed mathematical calculations shown</li>
+              <li className="text-blue-300">• Pattern recognition with evidence</li>
+              <li className="text-purple-300">• Speculative leaps with reasoning</li>
+              <li className="text-pink-300">• Testable predictions generated</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-4 p-4 bg-purple-900/20 rounded border border-purple-500/30">
+          <p className="text-sm italic text-purple-200">
+            "Mathematics advances through bold speculation grounded in rigorous calculation. 
+            This system shows its mathematical reasoning at every step, allowing evaluation 
+            of both the computational accuracy and the creative leaps that drive discovery."
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SpeculativeMathExplorer;
