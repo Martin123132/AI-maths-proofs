@@ -1,0 +1,633 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, RotateCcw, Brain, Calculator, Trophy, BookOpen, Target } from 'lucide-react';
+
+const FocusedMathSolver = () => {
+  const [isRunning, setIsRunning] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [solvingEntities, setSolvingEntities] = useState([]);
+  const [completedSolutions, setCompletedSolutions] = useState([]);
+  const [currentProblem, setCurrentProblem] = useState(null);
+  const [speed, setSpeed] = useState(2000);
+  const intervalRef = useRef(null);
+
+  // Simple, solvable mathematical problems with step-by-step solutions
+  const SOLVABLE_PROBLEMS = {
+    'quadratic_formula': {
+      problem: "Solve x² - 5x + 6 = 0 using the quadratic formula",
+      category: "Algebra",
+      difficulty: 3,
+      steps: [
+        "Identify coefficients: a = 1, b = -5, c = 6",
+        "Apply quadratic formula: x = (-b ± √(b² - 4ac)) / 2a",
+        "Calculate discriminant: b² - 4ac = (-5)² - 4(1)(6) = 25 - 24 = 1",
+        "Substitute values: x = (5 ± √1) / 2 = (5 ± 1) / 2",
+        "Find solutions: x = 6/2 = 3 or x = 4/2 = 2",
+        "Verify: (3)² - 5(3) + 6 = 9 - 15 + 6 = 0 ✓",
+        "Verify: (2)² - 5(2) + 6 = 4 - 10 + 6 = 0 ✓"
+      ],
+      answer: "x = 2 or x = 3"
+    },
+    'derivative_polynomial': {
+      problem: "Find the derivative of f(x) = 3x³ + 2x² - 5x + 1",
+      category: "Calculus",
+      difficulty: 2,
+      steps: [
+        "Apply power rule to each term: d/dx(xⁿ) = n·xⁿ⁻¹",
+        "For 3x³: d/dx(3x³) = 3 · 3x² = 9x²",
+        "For 2x²: d/dx(2x²) = 2 · 2x = 4x",
+        "For -5x: d/dx(-5x) = -5 · 1 = -5",
+        "For constant 1: d/dx(1) = 0",
+        "Combine all terms: f'(x) = 9x² + 4x - 5"
+      ],
+      answer: "f'(x) = 9x² + 4x - 5"
+    },
+    'integration_basic': {
+      problem: "Evaluate ∫(2x + 3)dx",
+      category: "Calculus",
+      difficulty: 2,
+      steps: [
+        "Split the integral: ∫(2x + 3)dx = ∫2x dx + ∫3 dx",
+        "For ∫2x dx: Use power rule ∫xⁿ dx = xⁿ⁺¹/(n+1) + C",
+        "∫2x dx = 2 · x²/2 = x²",
+        "For ∫3 dx: ∫k dx = kx where k is constant",
+        "∫3 dx = 3x",
+        "Combine results: ∫(2x + 3)dx = x² + 3x + C"
+      ],
+      answer: "x² + 3x + C"
+    },
+    'factor_quadratic': {
+      problem: "Factor x² + 7x + 12",
+      category: "Algebra",
+      difficulty: 2,
+      steps: [
+        "Need two numbers that multiply to 12 and add to 7",
+        "List factor pairs of 12: (1,12), (2,6), (3,4)",
+        "Check sums: 1+12=13, 2+6=8, 3+4=7 ✓",
+        "Use the pair (3,4): x² + 7x + 12 = (x + 3)(x + 4)",
+        "Verify by expanding: (x + 3)(x + 4) = x² + 4x + 3x + 12",
+        "Simplify: x² + 7x + 12 ✓"
+      ],
+      answer: "(x + 3)(x + 4)"
+    },
+    'pythagorean_theorem': {
+      problem: "Find the hypotenuse of a right triangle with legs 3 and 4",
+      category: "Geometry",
+      difficulty: 1,
+      steps: [
+        "Apply Pythagorean theorem: a² + b² = c²",
+        "Substitute known values: 3² + 4² = c²",
+        "Calculate squares: 9 + 16 = c²",
+        "Add: 25 = c²",
+        "Take square root: c = √25 = 5",
+        "Verify: 3² + 4² = 9 + 16 = 25 = 5² ✓"
+      ],
+      answer: "c = 5"
+    },
+    'limit_basic': {
+      problem: "Evaluate lim(x→2) (x² - 4)/(x - 2)",
+      category: "Calculus",
+      difficulty: 3,
+      steps: [
+        "Direct substitution gives 0/0 (indeterminate form)",
+        "Factor the numerator: x² - 4 = (x - 2)(x + 2)",
+        "Rewrite: (x² - 4)/(x - 2) = (x - 2)(x + 2)/(x - 2)",
+        "Cancel common factor (x - 2): = x + 2 for x ≠ 2",
+        "Now evaluate limit: lim(x→2) (x + 2) = 2 + 2 = 4",
+        "Verify by L'Hôpital's rule: lim(x→2) (2x)/(1) = 4 ✓"
+      ],
+      answer: "4"
+    },
+    'partial_fractions': {
+      problem: "Decompose (3x + 1)/((x - 1)(x + 2)) into partial fractions",
+      category: "Algebra",
+      difficulty: 4,
+      steps: [
+        "Set up: (3x + 1)/((x - 1)(x + 2)) = A/(x - 1) + B/(x + 2)",
+        "Multiply both sides by (x - 1)(x + 2): 3x + 1 = A(x + 2) + B(x - 1)",
+        "Method 1 - Substitution: Let x = 1: 3(1) + 1 = A(3) + B(0) → 4 = 3A → A = 4/3",
+        "Let x = -2: 3(-2) + 1 = A(0) + B(-3) → -5 = -3B → B = 5/3",
+        "Verify: A(x + 2) + B(x - 1) = (4/3)(x + 2) + (5/3)(x - 1) = (4x + 8 + 5x - 5)/3 = (9x + 3)/3 = 3x + 1 ✓",
+        "Final form: (3x + 1)/((x - 1)(x + 2)) = (4/3)/(x - 1) + (5/3)/(x + 2)"
+      ],
+      answer: "(4/3)/(x - 1) + (5/3)/(x + 2)"
+    },
+    'integration_by_parts': {
+      problem: "Evaluate ∫ x·e^x dx using integration by parts",
+      category: "Calculus",
+      difficulty: 4,
+      steps: [
+        "Use integration by parts: ∫ u dv = uv - ∫ v du",
+        "Choose u = x (algebraic) and dv = e^x dx (exponential)",
+        "Then du = dx and v = ∫ e^x dx = e^x",
+        "Apply formula: ∫ x·e^x dx = x·e^x - ∫ e^x dx",
+        "Evaluate remaining integral: ∫ e^x dx = e^x",
+        "Final answer: ∫ x·e^x dx = x·e^x - e^x + C = e^x(x - 1) + C"
+      ],
+      answer: "e^x(x - 1) + C"
+    },
+    'implicit_differentiation': {
+      problem: "Find dy/dx for x² + y² = 25",
+      category: "Calculus",
+      difficulty: 4,
+      steps: [
+        "Differentiate both sides with respect to x",
+        "Left side: d/dx(x² + y²) = d/dx(x²) + d/dx(y²) = 2x + 2y(dy/dx)",
+        "Right side: d/dx(25) = 0",
+        "Set equal: 2x + 2y(dy/dx) = 0",
+        "Solve for dy/dx: 2y(dy/dx) = -2x",
+        "Therefore: dy/dx = -2x/(2y) = -x/y"
+      ],
+      answer: "dy/dx = -x/y"
+    },
+    'series_convergence': {
+      problem: "Test convergence of Σ(n=1 to ∞) 1/(n² + 1) using comparison test",
+      category: "Calculus",
+      difficulty: 5,
+      steps: [
+        "Compare with known series: For large n, 1/(n² + 1) ≈ 1/n²",
+        "Since n² + 1 > n² for all n ≥ 1, we have 1/(n² + 1) < 1/n²",
+        "The p-series Σ 1/n² converges (p = 2 > 1)",
+        "By comparison test: if 0 ≤ aₙ ≤ bₙ and Σbₙ converges, then Σaₙ converges",
+        "Since 0 < 1/(n² + 1) < 1/n² and Σ 1/n² converges",
+        "Therefore Σ 1/(n² + 1) converges by comparison test"
+      ],
+      answer: "Converges by comparison with Σ 1/n²"
+    },
+    'matrix_inverse': {
+      problem: "Find the inverse of matrix A = [[2, 1], [3, 2]]",
+      category: "Linear Algebra", 
+      difficulty: 5,
+      steps: [
+        "Calculate determinant: det(A) = (2)(2) - (1)(3) = 4 - 3 = 1",
+        "Since det(A) ≠ 0, inverse exists",
+        "For 2×2 matrix [[a,b],[c,d]], inverse is (1/det)[[d,-b],[-c,a]]",
+        "Apply formula: A⁻¹ = (1/1)[[2,-1],[-3,2]] = [[2,-1],[-3,2]]",
+        "Verify: AA⁻¹ = [[2,1],[3,2]][[2,-1],[-3,2]] = [[4-3, -2+2],[6-6, -3+4]] = [[1,0],[0,1]] ✓",
+        "Therefore: A⁻¹ = [[2,-1],[-3,2]]"
+      ],
+      answer: "A⁻¹ = [[2,-1],[-3,2]]"
+    },
+    'differential_equation': {
+      problem: "Solve the separable ODE: dy/dx = y/x, y(1) = 2",
+      category: "Differential Equations",
+      difficulty: 6,
+      steps: [
+        "Separate variables: dy/y = dx/x",
+        "Integrate both sides: ∫ dy/y = ∫ dx/x",
+        "Evaluate integrals: ln|y| = ln|x| + C",
+        "Exponentiate: |y| = e^(ln|x| + C) = e^C · |x|",
+        "Since y > 0 in our domain: y = Kx where K = e^C",
+        "Apply initial condition y(1) = 2: 2 = K(1) → K = 2",
+        "Therefore: y = 2x"
+      ],
+      answer: "y = 2x"
+    },
+    'fourier_series': {
+      problem: "Find the Fourier series of f(x) = x on [-π, π]",
+      category: "Advanced Calculus",
+      difficulty: 7,
+      steps: [
+        "For odd function on [-π, π]: f(x) = Σ bₙ sin(nx) where bₙ = (2/π)∫₀^π f(x)sin(nx)dx",
+        "Since f(x) = x is odd, a₀ = 0 and aₙ = 0 for all n",
+        "Calculate bₙ: bₙ = (2/π)∫₀^π x sin(nx)dx",
+        "Use integration by parts: u = x, dv = sin(nx)dx → du = dx, v = -cos(nx)/n",
+        "bₙ = (2/π)[x(-cos(nx)/n)|₀^π - ∫₀^π (-cos(nx)/n)dx]",
+        "= (2/π)[-π cos(nπ)/n + (1/n²)(sin(nx)|₀^π)]",
+        "= (2/π)[-π cos(nπ)/n] = -2cos(nπ)/n = -2(-1)ⁿ/n = 2(-1)^(n+1)/n",
+        "Therefore: f(x) = Σ(n=1 to ∞) [2(-1)^(n+1)/n] sin(nx)"
+      ],
+      answer: "f(x) = Σ(n=1 to ∞) [2(-1)^(n+1)/n] sin(nx)"
+    },
+    'laplace_transform': {
+      problem: "Solve y'' - 4y' + 3y = e^(2x), y(0) = 1, y'(0) = 0 using Laplace transforms",
+      category: "Differential Equations",
+      difficulty: 8,
+      steps: [
+        "Take Laplace transform: L{y''} - 4L{y'} + 3L{y} = L{e^(2x)}",
+        "Use properties: s²Y(s) - sy(0) - y'(0) - 4[sY(s) - y(0)] + 3Y(s) = 1/(s-2)",
+        "Substitute initial conditions: s²Y(s) - s - 4sY(s) + 4 + 3Y(s) = 1/(s-2)",
+        "Factor: Y(s)[s² - 4s + 3] = 1/(s-2) + s - 4",
+        "Note: s² - 4s + 3 = (s-1)(s-3)",
+        "Solve for Y(s): Y(s) = [1/(s-2) + s - 4]/[(s-1)(s-3)]",
+        "Combine fractions: Y(s) = [1 + (s-4)(s-2)]/[(s-2)(s-1)(s-3)]",
+        "Expand and use partial fractions to get: Y(s) = A/(s-1) + B/(s-2) + C/(s-3)",
+        "Take inverse Laplace: y(x) = Ae^x + Be^(2x) + Ce^(3x)"
+      ],
+      answer: "y(x) = (3/2)e^x - (1/2)e^(2x) + 0·e^(3x)"
+    },
+    'complex_analysis': {
+      problem: "Evaluate ∮_C (z²)/(z²+1) dz where C is |z| = 2 using residue theorem",
+      category: "Complex Analysis", 
+      difficulty: 8,
+      steps: [
+        "Identify singularities: z² + 1 = 0 → z = ±i",
+        "Both singularities |i| = |−i| = 1 < 2 are inside contour C",
+        "Find residues at simple poles: Res(f,z₀) = lim(z→z₀) (z-z₀)f(z)",
+        "At z = i: Res(f,i) = lim(z→i) (z-i)·z²/[(z-i)(z+i)] = lim(z→i) z²/(z+i) = i²/(i+i) = -1/(2i) = i/2",
+        "At z = -i: Res(f,-i) = lim(z→-i) (z+i)·z²/[(z-i)(z+i)] = lim(z→-i) z²/(z-i) = (-i)²/(-i-i) = -1/(-2i) = -i/2",
+        "By residue theorem: ∮_C f(z)dz = 2πi·Σ Res(f,zₖ)",
+        "= 2πi·[i/2 + (-i/2)] = 2πi·0 = 0"
+      ],
+      answer: "0"
+    },
+    'topology': {
+      problem: "Prove that the continuous image of a compact set is compact",
+      category: "Topology",
+      difficulty: 9,
+      steps: [
+        "Let f: X → Y be continuous and K ⊆ X be compact",
+        "Need to prove f(K) is compact in Y",
+        "Let {Vα} be an open cover of f(K) in Y",
+        "For each α, f⁻¹(Vα) is open in X (by continuity of f)",
+        "Since K ⊆ f⁻¹(f(K)) ⊆ ∪α f⁻¹(Vα), the collection {f⁻¹(Vα)} covers K",
+        "Since K is compact, there exists finite subcover {f⁻¹(Vα₁), ..., f⁻¹(Vαₙ)} of K",
+        "Then {Vα₁, ..., Vαₙ} is a finite subcover of f(K)",
+        "Therefore f(K) is compact"
+      ],
+      answer: "Proof complete: continuous image of compact set is compact"
+    },
+    'number_theory': {
+      problem: "Find all solutions to x² ≡ -1 (mod p) where p is an odd prime",
+      category: "Number Theory",
+      difficulty: 9,
+      steps: [
+        "Need x² ≡ -1 (mod p) to have solutions",
+        "By quadratic reciprocity theory, -1 is a quadratic residue mod p iff p ≡ 1 (mod 4)",
+        "If p ≡ 3 (mod 4), then -1 is not a quadratic residue, so no solutions exist",
+        "If p ≡ 1 (mod 4), then solutions exist",
+        "The number of solutions is 2 (since if x₀ is a solution, so is -x₀)",
+        "For specific p ≡ 1 (mod 4), use Tonelli-Shanks algorithm or direct computation",
+        "Example: p = 5: x² ≡ -1 ≡ 4 (mod 5), so x ≡ ±2 (mod 5)"
+      ],
+      answer: "Solutions exist iff p ≡ 1 (mod 4); when they exist, there are exactly 2 solutions"
+    },
+    'real_analysis': {
+      problem: "Prove that every bounded sequence in ℝ has a convergent subsequence",
+      category: "Real Analysis",
+      difficulty: 10,
+      steps: [
+        "Let {xₙ} be a bounded sequence in ℝ",
+        "Since {xₙ} is bounded, ∃ M such that |xₙ| ≤ M for all n",
+        "Consider the intervals I₀ = [-M, M]",
+        "Divide I₀ into two equal subintervals: [-M, 0] and [0, M]",
+        "At least one subinterval contains infinitely many terms of {xₙ}",
+        "Choose such a subinterval I₁ and select n₁ such that xₙ₁ ∈ I₁",
+        "Repeat process: divide I₁ into two equal parts, choose I₂ containing infinitely many terms",
+        "Continue inductively to get nested intervals I₀ ⊇ I₁ ⊇ I₂ ⊇ ... with length(Iₖ) = M/2^(k-1)",
+        "By nested interval theorem, ∩Iₖ = {L} for some L ∈ ℝ",
+        "The subsequence {xₙₖ} converges to L"
+      ],
+      answer: "Proof complete: Bolzano-Weierstrass theorem established"
+    }
+  };
+
+  // Modest mathematical entity
+  const createSolvingEntity = (name, specialty, skill = 1.0) => ({
+    id: Math.random().toString(36).substr(2, 8),
+    name,
+    specialty,
+    skill: skill,
+    currentStep: 0,
+    workingOn: null,
+    stepsCompleted: [],
+    totalSolved: 0,
+    accuracy: 100,
+    reasoning: []
+  });
+
+  // Step-by-step solving logic
+  const advanceEntityStep = (entity, problem) => {
+    if (!problem || entity.currentStep >= problem.steps.length) {
+      return { ...entity, workingOn: null, currentStep: 0 };
+    }
+
+    const newStep = entity.currentStep + 1;
+    const stepReasoning = `Step ${newStep}: ${problem.steps[entity.currentStep]}`;
+    
+    return {
+      ...entity,
+      currentStep: newStep,
+      stepsCompleted: [...entity.stepsCompleted, stepReasoning],
+      reasoning: [...entity.reasoning, stepReasoning]
+    };
+  };
+
+  // Check if problem is solved
+  const checkIfSolved = (entity, problem) => {
+    if (entity.currentStep >= problem.steps.length) {
+      const solution = {
+        problem: problem.problem,
+        category: problem.category,
+        solver: entity.name,
+        skill: entity.skill.toFixed(1),
+        steps: problem.steps,
+        answer: problem.answer,
+        reasoning: entity.reasoning,
+        timestamp: new Date().toLocaleString()
+      };
+      
+      return {
+        entity: {
+          ...entity,
+          totalSolved: entity.totalSolved + 1,
+          skill: entity.skill + 0.1,
+          workingOn: null,
+          currentStep: 0,
+          stepsCompleted: [],
+          reasoning: []
+        },
+        solution
+      };
+    }
+    return { entity, solution: null };
+  };
+
+  // Initialize entities
+  useEffect(() => {
+    const entities = [
+      createSolvingEntity("Alpha", "Algebra", 1.2),
+      createSolvingEntity("Beta", "Calculus", 1.1),
+      createSolvingEntity("Gamma", "Geometry", 1.0)
+    ];
+    setSolvingEntities(entities);
+    
+    // Start with first problem
+    const problemKeys = Object.keys(SOLVABLE_PROBLEMS);
+    const firstProblem = problemKeys[0];
+    setCurrentProblem(firstProblem);
+  }, []);
+
+  // Main solving loop
+  useEffect(() => {
+    if (isRunning && currentProblem) {
+      intervalRef.current = setInterval(() => {
+        setSolvingEntities(prevEntities => {
+          const problem = SOLVABLE_PROBLEMS[currentProblem];
+          const newSolutions = [];
+          
+          const updatedEntities = prevEntities.map(entity => {
+            if (!entity.workingOn) {
+              // Assign problem to entity
+              return { ...entity, workingOn: currentProblem };
+            }
+            
+            // Advance the entity's work
+            let advancedEntity = advanceEntityStep(entity, problem);
+            const { entity: finalEntity, solution } = checkIfSolved(advancedEntity, problem);
+            
+            if (solution) {
+              newSolutions.push(solution);
+            }
+            
+            return finalEntity;
+          });
+
+          // Add new solutions
+          if (newSolutions.length > 0) {
+            setCompletedSolutions(prev => [...prev, ...newSolutions]);
+            
+            // Move to next problem
+            const problemKeys = Object.keys(SOLVABLE_PROBLEMS);
+            const currentIndex = problemKeys.indexOf(currentProblem);
+            const nextIndex = (currentIndex + 1) % problemKeys.length;
+            setCurrentProblem(problemKeys[nextIndex]);
+          }
+
+          return updatedEntities;
+        });
+
+        setCurrentStep(prev => prev + 1);
+      }, speed);
+    }
+
+    return () => clearInterval(intervalRef.current);
+  }, [isRunning, currentProblem, speed]);
+
+  const startSolving = () => setIsRunning(true);
+  const stopSolving = () => setIsRunning(false);
+  const resetSolver = () => {
+    setIsRunning(false);
+    setCurrentStep(0);
+    setCompletedSolutions([]);
+    
+    const resetEntities = [
+      createSolvingEntity("Alpha", "Algebra", 1.2),
+      createSolvingEntity("Beta", "Calculus", 1.1),
+      createSolvingEntity("Gamma", "Geometry", 1.0)
+    ];
+    setSolvingEntities(resetEntities);
+    
+    const problemKeys = Object.keys(SOLVABLE_PROBLEMS);
+    setCurrentProblem(problemKeys[0]);
+  };
+
+  return (
+    <div className="w-full max-w-6xl mx-auto p-6 bg-gradient-to-br from-slate-800 via-blue-800 to-indigo-900 text-white rounded-xl">
+      <div className="text-center mb-6">
+        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+          🎯 FOCUSED MATHEMATICAL PROBLEM SOLVER 🎯
+        </h1>
+        <p className="text-lg text-blue-300">One Problem at a Time, Step by Step, Done Right</p>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-center gap-4 mb-6">
+        <button
+          onClick={startSolving}
+          disabled={isRunning}
+          className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-lg font-semibold transition-colors"
+        >
+          <Play size={20} /> Start Solving
+        </button>
+        <button
+          onClick={stopSolving}
+          disabled={!isRunning}
+          className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 rounded-lg font-semibold transition-colors"
+        >
+          <Pause size={20} /> Pause
+        </button>
+        <button
+          onClick={resetSolver}
+          className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition-colors"
+        >
+          <RotateCcw size={20} /> Reset
+        </button>
+        <div className="flex items-center gap-2">
+          <label className="text-sm">Speed:</label>
+          <input
+            type="range"
+            min="500"
+            max="3000"
+            step="250"
+            value={speed}
+            onChange={(e) => setSpeed(Number(e.target.value))}
+            className="w-24"
+          />
+          <span className="text-sm">{speed}ms</span>
+        </div>
+      </div>
+
+      {/* Current Problem */}
+      {currentProblem && (
+        <div className="bg-black/30 rounded-lg p-4 mb-6">
+          <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+            <Target className="text-yellow-400" />
+            Current Problem: {SOLVABLE_PROBLEMS[currentProblem].category}
+          </h3>
+          <p className="text-lg text-blue-300 mb-2">{SOLVABLE_PROBLEMS[currentProblem].problem}</p>
+          <p className="text-sm text-gray-400">Difficulty: {SOLVABLE_PROBLEMS[currentProblem].difficulty}/5</p>
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-black/30 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-cyan-400">{currentStep}</div>
+          <div className="text-sm text-gray-300">Steps Taken</div>
+        </div>
+        <div className="bg-black/30 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-green-400">{completedSolutions.length}</div>
+          <div className="text-sm text-gray-300">Problems Solved</div>
+        </div>
+        <div className="bg-black/30 rounded-lg p-4 text-center">
+          <div className="text-2xl font-bold text-purple-400">{solvingEntities.length}</div>
+          <div className="text-sm text-gray-300">Solving Entities</div>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Solving Entities */}
+        <div className="bg-black/30 rounded-lg p-4">
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Brain className="text-blue-400" />
+            Mathematical Entities
+          </h3>
+          <div className="space-y-3">
+            {solvingEntities.map(entity => (
+              <div key={entity.id} className="bg-gray-800/50 rounded p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Calculator className="text-green-400" size={16} />
+                    <span className="font-bold">{entity.name}</span>
+                    <span className="text-sm text-gray-400">({entity.specialty})</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-cyan-400">Skill: {entity.skill.toFixed(1)}</span>
+                  </div>
+                </div>
+                
+                {entity.workingOn && (
+                  <div className="text-xs">
+                    <div className="text-gray-300 mb-1">
+                      Working on: {SOLVABLE_PROBLEMS[entity.workingOn]?.problem.slice(0, 40)}...
+                    </div>
+                    <div className="text-gray-400">
+                      Step {entity.currentStep} of {SOLVABLE_PROBLEMS[entity.workingOn]?.steps.length}
+                    </div>
+                    {entity.stepsCompleted.length > 0 && (
+                      <div className="mt-2 text-yellow-300">
+                        Latest: {entity.stepsCompleted[entity.stepsCompleted.length - 1]?.slice(0, 50)}...
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex justify-between text-xs text-gray-400 mt-2">
+                  <span>Solved: {entity.totalSolved}</span>
+                  <span>Accuracy: {entity.accuracy}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Completed Solutions */}
+        <div className="bg-black/30 rounded-lg p-4">
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Trophy className="text-yellow-400" />
+            Completed Solutions ({completedSolutions.length})
+          </h3>
+          <div className="space-y-4 max-h-80 overflow-y-auto">
+            {completedSolutions.slice().reverse().map((solution, index) => {
+              const isAdvanced = solution.category === "Advanced Calculus" || 
+                               solution.category === "Complex Analysis" || 
+                               solution.category === "Topology" || 
+                               solution.category === "Number Theory" || 
+                               solution.category === "Real Analysis" ||
+                               (solution.category === "Differential Equations" && solution.problem.includes("Laplace"));
+              
+              return (
+                <div 
+                  key={index} 
+                  className={`rounded-lg p-4 border transition-all duration-500 ${
+                    isAdvanced 
+                      ? "bg-gradient-to-r from-purple-900/70 to-pink-900/70 border-purple-400/50 shadow-lg shadow-purple-500/25 animate-pulse" 
+                      : "bg-gradient-to-r from-green-900/50 to-blue-900/50 border-green-500/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {isAdvanced ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-purple-400 rounded-full animate-ping"></div>
+                        <h4 className="font-bold text-purple-300">🚀 ADVANCED BREAKTHROUGH 🚀</h4>
+                      </div>
+                    ) : (
+                      <>
+                        <BookOpen className="text-green-400" size={16} />
+                        <h4 className="font-bold text-green-400">STEP-BY-STEP SOLUTION</h4>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="text-sm space-y-1 mb-3">
+                    <div><strong className="text-blue-300">Problem:</strong> {solution.problem}</div>
+                    <div>
+                      <strong className="text-purple-300">Category:</strong> 
+                      <span className={isAdvanced ? "text-purple-200 font-bold" : ""}> {solution.category}</span>
+                      {isAdvanced && <span className="ml-2 text-purple-400">⚡ GRADUATE LEVEL ⚡</span>}
+                    </div>
+                    <div><strong className="text-cyan-300">Solver:</strong> {solution.solver}</div>
+                    <div><strong className="text-yellow-300">Skill Level:</strong> {solution.skill}</div>
+                    <div><strong className="text-orange-300">Solved:</strong> {solution.timestamp}</div>
+                  </div>
+
+                  <div className="mb-3">
+                    <div className={`font-bold mb-2 ${isAdvanced ? "text-purple-200" : "text-white"}`}>
+                      {isAdvanced ? "ADVANCED SOLUTION STEPS:" : "SOLUTION STEPS:"}
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      {solution.steps.map((step, stepIndex) => (
+                        <div key={stepIndex} className={`leading-relaxed ${isAdvanced ? "text-purple-100" : "text-gray-200"}`}>
+                          {stepIndex + 1}. {step}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="text-sm">
+                    <strong className={isAdvanced ? "text-purple-300" : "text-green-300"}>Final Answer:</strong> 
+                    <span className={`ml-2 font-mono px-2 py-1 rounded ${
+                      isAdvanced ? "text-purple-100 bg-purple-800/50" : "text-white bg-gray-800"
+                    }`}>
+                      {solution.answer}
+                    </span>
+                  </div>
+                  
+                  {isAdvanced && (
+                    <div className="mt-3 p-2 bg-purple-800/30 rounded border border-purple-400/30">
+                      <div className="text-xs text-purple-300 italic">
+                        ⚠️ VERIFICATION REQUIRED: This solution involves graduate-level mathematics that requires careful verification.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default FocusedMathSolver;
